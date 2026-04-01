@@ -455,7 +455,12 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 	case "square":
 		narrateExploration(ctx, logger, dispatcher, sender, ms, "walk to the Town Square and look around the market stalls")
 	default:
-		narrateExploration(ctx, logger, dispatcher, sender, ms, action.Action)
+		// Sanitize free-form player input for Claude
+		text := action.Action
+		if len(text) > 200 {
+			text = text[:200]
+		}
+		narrateExploration(ctx, logger, dispatcher, sender, ms, text)
 	}
 }
 
@@ -474,7 +479,12 @@ func handleDialogueAction(ctx context.Context, logger runtime.Logger, dispatcher
 	case "greet":
 		narrateDialogue(ctx, logger, dispatcher, sender, ms, action.Target, "greet warmly and introduce yourself")
 	default:
-		narrateDialogue(ctx, logger, dispatcher, sender, ms, action.Target, action.Action)
+		// Sanitize free-form player input for Claude
+		text := action.Action
+		if len(text) > 200 {
+			text = text[:200]
+		}
+		narrateDialogue(ctx, logger, dispatcher, sender, ms, action.Target, text)
 	}
 }
 
@@ -514,7 +524,7 @@ func narrateExploration(ctx context.Context, logger runtime.Logger, dispatcher r
 
 	logger.Info("Narrating: tier=%d, language=%s, action=%s [%s]", tier, ms.Language, playerText, ms.Pool.StatsString())
 
-	resp, err := ms.Pool.Generate(tier, systemPrompt, userMessage, cacheKey, nil, ms.Character, ms.Language)
+	resp, err := ms.Pool.Generate(ms.UserID, tier, systemPrompt, userMessage, cacheKey, nil, ms.Character, ms.Language)
 	if err != nil {
 		logger.Error("Claude error: %v", err)
 		sendNarrative(dispatcher, sender, "The world shimmers for a moment, then settles. You take in your surroundings.")
@@ -530,7 +540,7 @@ func narrateAction(ctx context.Context, logger runtime.Logger, dispatcher runtim
 
 	// Template tier — no API call needed
 	if tier == claude.TierTemplate {
-		resp, _ := ms.Pool.Generate(tier, "", "", "", result, ms.Character, ms.Language)
+		resp, _ := ms.Pool.Generate(ms.UserID, tier, "", "", "", result, ms.Character, ms.Language)
 		sendNarrative(dispatcher, sender, resp.Narrative)
 		return
 	}
@@ -556,7 +566,7 @@ func narrateAction(ctx context.Context, logger runtime.Logger, dispatcher runtim
 
 	logger.Info("Narrating action: tier=%d, action=%s [%s]", tier, result.Action, ms.Pool.StatsString())
 
-	resp, err := ms.Pool.Generate(tier, systemPrompt, userMessage, "", result, ms.Character, ms.Language)
+	resp, err := ms.Pool.Generate(ms.UserID, tier, systemPrompt, userMessage, "", result, ms.Character, ms.Language)
 	if err != nil {
 		logger.Error("Claude error: %v", err)
 		sendNarrative(dispatcher, sender, result.Details)
@@ -619,7 +629,7 @@ func narrateDialogue(ctx context.Context, logger runtime.Logger, dispatcher runt
 
 	logger.Info("Narrating dialogue: NPC=%s, action=%s [%s]", npcName, playerText, ms.Pool.StatsString())
 
-	resp, err := ms.Pool.Generate(claude.TierSonnet, systemPrompt, userMessage, npcCacheKey, nil, ms.Character, ms.Language)
+	resp, err := ms.Pool.Generate(ms.UserID, claude.TierSonnet, systemPrompt, userMessage, npcCacheKey, nil, ms.Character, ms.Language)
 	if err != nil {
 		logger.Error("Claude dialogue error: %v", err)
 		sendNarrative(dispatcher, sender, "The NPC regards you silently.")

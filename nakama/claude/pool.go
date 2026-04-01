@@ -10,13 +10,14 @@ import (
 
 // WorkerPool manages concurrent Claude API calls with rate limiting.
 type WorkerPool struct {
-	client      *Client
-	haikuClient *Client
-	maxWorkers  int
-	sem         chan struct{}
-	cache       *ResponseCache
-	mu          sync.Mutex
-	stats       PoolStats
+	client       *Client
+	haikuClient  *Client
+	maxWorkers   int
+	sem          chan struct{}
+	cache        *ResponseCache
+	mu           sync.Mutex
+	stats        PoolStats
+	userLastCall sync.Map // map[string]time.Time — per-user rate limiting
 }
 
 // PoolStats tracks API usage for monitoring.
@@ -106,8 +107,9 @@ func (c *ResponseCache) Set(key string, resp *engine.ClaudeResponse) {
 }
 
 // Generate routes a narration request to the appropriate tier.
-// Returns the narration text.
+// Returns the narration text. userID is used for per-user rate limiting.
 func (wp *WorkerPool) Generate(
+	userID string,
 	tier NarrationTier,
 	systemPrompt string,
 	userMessage string,
@@ -116,6 +118,25 @@ func (wp *WorkerPool) Generate(
 	character *engine.Character,
 	language string,
 ) (*engine.ClaudeResponse, error) {
+
+	// Per-user rate limit: minimum 2 seconds between Claude calls
+	if userID != "" && tier != TierTemplate {
+		if last, ok := wp.userLastCall.Load(userID); ok {
+			if time.Since(last.(time.Time)) < 2*time.Second {
+				wp.mu.Lock()
+				wp.stats.QueueDrops++
+				wp.mu.Unlock()
+				if result != nil && character != nil {
+					text := TemplateNarrate(result, character, language)
+					return &engine.ClaudeResponse{Narrative: text}, nil
+				}
+				return &engine.ClaudeResponse{
+					Narrative: "The world continues around you...",
+				}, nil
+			}
+		}
+		wp.userLastCall.Store(userID, time.Now())
+	}
 
 	// Tier 0: Template — no API call
 	if tier == TierTemplate && result != nil && character != nil {

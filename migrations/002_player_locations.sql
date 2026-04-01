@@ -2,6 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS player_locations (
     user_id         VARCHAR(128) PRIMARY KEY,
+    character_id    VARCHAR(200) NOT NULL DEFAULT '',
     character_name  VARCHAR(200) NOT NULL,
     character_class VARCHAR(50) NOT NULL,
     character_level INT NOT NULL DEFAULT 1,

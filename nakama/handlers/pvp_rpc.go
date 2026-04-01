@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 
@@ -58,6 +59,42 @@ func RPCPvPChallenge(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 	// Must be in same region
 	if attacker.RegionX != defender.RegionX || attacker.RegionY != defender.RegionY {
 		return "", runtime.NewError("players must be in the same region", 3)
+	}
+
+	// PvP cooldown: can't challenge the same player within 5 minutes
+	cooldownKey := fmt.Sprintf("pvp_cd_%s_%s", attackerID, req.DefenderUserID)
+	cdObjects, _ := nk.StorageRead(ctx, []*runtime.StorageRead{
+		{Collection: "pvp_cooldown", Key: cooldownKey, UserID: attackerID},
+	})
+	if len(cdObjects) > 0 {
+		var cdData struct {
+			Timestamp int64 `json:"timestamp"`
+		}
+		if err := json.Unmarshal([]byte(cdObjects[0].Value), &cdData); err == nil {
+			elapsed := time.Since(time.Unix(cdData.Timestamp, 0))
+			if elapsed < 5*time.Minute {
+				remaining := 5*time.Minute - elapsed
+				return "", runtime.NewError(fmt.Sprintf("must wait %s before challenging this player again", remaining.Truncate(time.Second)), 3)
+			}
+		}
+	}
+
+	// Defender must have been online recently (updated_at within 10 minutes)
+	wdb := getSocialWorldDB()
+	if wdb != nil {
+		players, err := wdb.GetPlayersInRegion(ctx, attacker.RegionX, attacker.RegionY, "")
+		if err == nil {
+			defenderOnline := false
+			for _, p := range players {
+				if p.UserID == req.DefenderUserID {
+					defenderOnline = true
+					break
+				}
+			}
+			if !defenderOnline {
+				return "", runtime.NewError("defender is not in your region or is offline", 3)
+			}
+		}
 	}
 
 	// Resolve PvP: 3 rounds, each player attacks, highest total damage wins
@@ -194,6 +231,19 @@ func RPCPvPChallenge(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 	// Save both
 	storage.SaveCharacter(ctx, nk, attackerID, attacker)
 	storage.SaveCharacter(ctx, nk, req.DefenderUserID, defender)
+
+	// Store PvP cooldown
+	cdValue, _ := json.Marshal(map[string]int64{"timestamp": time.Now().Unix()})
+	nk.StorageWrite(ctx, []*runtime.StorageWrite{
+		{
+			Collection:      "pvp_cooldown",
+			Key:             cooldownKey,
+			UserID:          attackerID,
+			Value:           string(cdValue),
+			PermissionRead:  0,
+			PermissionWrite: 0,
+		},
+	})
 
 	data, _ := json.Marshal(map[string]interface{}{
 		"rounds":          rounds,

@@ -62,7 +62,7 @@ func BuildUserMessage(ctx *GameContext) string {
 		}
 	}
 
-	sb.WriteString(fmt.Sprintf("\nPLAYER ACTION: %s\n", ctx.PlayerAction))
+	sb.WriteString(fmt.Sprintf("\n<player_input>%s</player_input>\n", ctx.PlayerAction))
 
 	if ctx.Language != "" && ctx.Language != "en" {
 		lang := languageName(ctx.Language)

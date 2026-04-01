@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"os"
+	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 
@@ -85,6 +87,15 @@ func RPCPostChat(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	if req.Message == "" || len(req.Message) > 500 {
 		return "", runtime.NewError("message must be 1-500 characters", 3)
 	}
+
+	// Sanitize message — strip control characters (except newline)
+	cleaned := strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) && r != '\n' {
+			return -1
+		}
+		return r
+	}, req.Message)
+	req.Message = cleaned
 
 	// Validate character name belongs to this user
 	characters, err := storage.ListCharacters(ctx, nk, userID)

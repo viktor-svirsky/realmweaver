@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"unicode"
 
 	"github.com/heroiclabs/nakama-common/runtime"
 
@@ -37,6 +38,14 @@ func RPCCreateCharacter(ctx context.Context, logger runtime.Logger, db *sql.DB, 
 
 	if req.Name == "" {
 		return "", runtime.NewError("name is required", 3)
+	}
+	if len(req.Name) < 2 || len(req.Name) > 20 {
+		return "", runtime.NewError("name must be 2-20 characters", 3)
+	}
+	for _, r := range req.Name {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != ' ' && r != '-' {
+			return "", runtime.NewError("name can only contain letters, numbers, spaces, and hyphens", 3)
+		}
 	}
 	validClasses := map[engine.Class]bool{
 		engine.ClassWarrior: true, engine.ClassMage: true, engine.ClassRogue: true, engine.ClassCleric: true,
@@ -159,6 +168,10 @@ func RPCSaveGame(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		return "", runtime.NewError("invalid request", 3)
 	}
 
+	if req.Slot < 0 || req.Slot > 9 {
+		return "", runtime.NewError("slot must be 0-9", 3)
+	}
+
 	character, err := storage.LoadCharacter(ctx, nk, userID, req.CharacterID)
 	if err != nil || character == nil {
 		return "", runtime.NewError("character not found", 5)
@@ -184,6 +197,10 @@ func RPCLoadGame(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 	}
 	if err := json.Unmarshal([]byte(payload), &req); err != nil {
 		return "", runtime.NewError("invalid request", 3)
+	}
+
+	if req.Slot < 0 || req.Slot > 9 {
+		return "", runtime.NewError("slot must be 0-9", 3)
 	}
 
 	character, err := storage.LoadGame(ctx, nk, userID, req.Slot)
