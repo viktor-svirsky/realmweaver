@@ -199,11 +199,14 @@ export default function MapView({ onClose }: Props) {
         region_y: destY,
       });
 
-      // Close map after short delay to show the result
+      // Signal the match to reload region data for the new position
+      sendAction('travel_complete');
+
+      // Close map after travel time
       setTimeout(() => {
         setIsTraveling(false);
         onClose();
-      }, result.travel_time * 1000);
+      }, Math.min(result.travel_time * 1000, 5000));
     } catch (err) {
       setIsTraveling(false);
       store.addNarrativeEntry({

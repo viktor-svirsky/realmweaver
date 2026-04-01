@@ -420,21 +420,6 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 		}
 		sendMechanical(dispatcher, sender, &result)
 		narrateExploration(ctx, logger, dispatcher, sender, ms, "rest at the current location")
-	case "talk_marta":
-		ms.Phase = engine.PhaseInDialogue
-		narrateDialogue(ctx, logger, dispatcher, sender, ms, "Marta", "greet and ask for news")
-	case "talk_theron":
-		ms.Phase = engine.PhaseInDialogue
-		narrateDialogue(ctx, logger, dispatcher, sender, ms, "Theron", "greet and ask about weapons")
-	case "talk_corin":
-		ms.Phase = engine.PhaseInDialogue
-		narrateDialogue(ctx, logger, dispatcher, sender, ms, "Elder Corin", "ask about quests and the town's troubles")
-	case "talk_lina":
-		ms.Phase = engine.PhaseInDialogue
-		narrateDialogue(ctx, logger, dispatcher, sender, ms, "Sister Lina", "ask for a blessing or healing")
-	case "talk_pip":
-		ms.Phase = engine.PhaseInDialogue
-		narrateDialogue(ctx, logger, dispatcher, sender, ms, "Pip", "browse wares and ask what's for sale")
 	case "enter_dungeon":
 		room := 1
 		enemies := engine.GoblinCaveEnemies(room)
@@ -446,6 +431,36 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 			Success: true,
 			Details: "Entering the Goblin Cave. Combat begins!",
 		}, "entering the Goblin Cave and encountering enemies")
+	case "travel_complete":
+		// Reload character from storage to get updated position
+		if ms.UserID != "" {
+			updated, err := storage.LoadCharacter(ctx, nk, ms.UserID, ms.Character.ID)
+			if err == nil && updated != nil {
+				ms.Character = updated
+				// Reload region for new position
+				if ms.WorldDB != nil {
+					region, _ := ms.WorldDB.GetRegion(ctx, ms.Character.RegionX, ms.Character.RegionY)
+					if region != nil {
+						ms.Region = region
+						ms.NPCs, _ = ms.WorldDB.GetNPCsInRegion(ctx, region.ID)
+					}
+					// Update world location
+					ms.WorldDB.UpdatePlayerLocation(ctx, &world.PlayerLocation{
+						UserID:         ms.UserID,
+						CharacterID:    ms.Character.ID,
+						CharacterName:  ms.Character.Name,
+						CharacterClass: string(ms.Character.Class),
+						CharacterLevel: ms.Character.Level,
+						RegionX:        ms.Character.RegionX,
+						RegionY:        ms.Character.RegionY,
+						Karma:          ms.Character.Karma,
+					})
+				}
+				logger.Info("Player traveled to (%d,%d) - %s (%s)", ms.Character.RegionX, ms.Character.RegionY, ms.Region.Name, ms.Region.Biome)
+				// Narrate arriving at the new location — Claude will use the player's language
+				narrateExploration(ctx, logger, dispatcher, sender, ms, fmt.Sprintf("you just traveled to a new region called %s (a %s area). Describe your arrival and what you see in this new place", ms.Region.Name, ms.Region.Biome))
+			}
+		}
 	case "tavern":
 		narrateExploration(ctx, logger, dispatcher, sender, ms, "enter The Wanderer's Rest tavern")
 	case "forge":
@@ -455,6 +470,14 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 	case "square":
 		narrateExploration(ctx, logger, dispatcher, sender, ms, "walk to the Town Square and look around the market stalls")
 	default:
+		// Check for dynamic NPC talk actions (talk_<name>)
+		if strings.HasPrefix(action.Action, "talk_") {
+			ms.Phase = engine.PhaseInDialogue
+			npcName := strings.TrimPrefix(action.Action, "talk_")
+			npcName = strings.ReplaceAll(npcName, "_", " ")
+			narrateDialogue(ctx, logger, dispatcher, sender, ms, npcName, "greet and introduce yourself")
+			return
+		}
 		// Sanitize free-form player input for Claude
 		text := action.Action
 		if len(text) > 200 {
@@ -651,9 +674,43 @@ func sendGameState(dispatcher runtime.MatchDispatcher, presence runtime.Presence
 }
 
 func sendQuickActions(dispatcher runtime.MatchDispatcher, presence runtime.Presence, ms *MatchState) {
-	actions := engine.QuickActionsForPhaseWithChar(ms.Phase, ms.Combat, ms.Character)
-	data, _ := json.Marshal(actions)
-	dispatcher.BroadcastMessage(OpCodeQuickActions, data, []runtime.Presence{presence}, nil, true)
+	if ms.Phase == engine.PhaseExploring {
+		// Build dynamic actions based on current region
+		actions := []engine.QuickAction{
+			{ID: "look", Label: "Look Around", Icon: "magnifier"},
+			{ID: "travel", Label: "Travel", Icon: "map"},
+		}
+		// Add region structures as locations
+		if ms.Region != nil {
+			structures := world.ParseStructures(ms.Region.Structures)
+			for _, s := range structures {
+				switch s.Type {
+				case "tavern":
+					actions = append(actions, engine.QuickAction{ID: "tavern", Label: s.Name, Icon: "tavern"})
+				case "shop":
+					actions = append(actions, engine.QuickAction{ID: "forge", Label: s.Name, Icon: "anvil"})
+				case "square":
+					actions = append(actions, engine.QuickAction{ID: "square", Label: s.Name, Icon: "market"})
+				case "house":
+					actions = append(actions, engine.QuickAction{ID: "chapel", Label: s.Name, Icon: "chapel"})
+				case "dungeon":
+					actions = append(actions, engine.QuickAction{ID: "enter_dungeon", Label: s.Name, Icon: "dungeon"})
+				}
+			}
+		}
+		// Add NPCs from current region
+		for _, npc := range ms.NPCs {
+			npcID := "talk_" + strings.ToLower(strings.ReplaceAll(npc.Name, " ", "_"))
+			actions = append(actions, engine.QuickAction{ID: npcID, Label: "Talk to " + npc.Name, Icon: "npc"})
+		}
+		actions = append(actions, engine.QuickAction{ID: "rest", Label: "Rest", Icon: "campfire"})
+		data, _ := json.Marshal(actions)
+		dispatcher.BroadcastMessage(OpCodeQuickActions, data, []runtime.Presence{presence}, nil, true)
+	} else {
+		actions := engine.QuickActionsForPhaseWithChar(ms.Phase, ms.Combat, ms.Character)
+		data, _ := json.Marshal(actions)
+		dispatcher.BroadcastMessage(OpCodeQuickActions, data, []runtime.Presence{presence}, nil, true)
+	}
 }
 
 func sendNarrative(dispatcher runtime.MatchDispatcher, presence runtime.Presence, text string) {
