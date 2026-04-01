@@ -5,6 +5,7 @@ import { RootStackParamList } from '../../App';
 import { rpc } from '../api/nakama';
 import { Character } from '../types/game';
 import { useGameStore } from '../state/gameStore';
+import { t } from '../i18n/translations';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -44,9 +45,9 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Realmweaver</Text>
-      <Text style={styles.subtitle}>AI Dungeon Master</Text>
+      <Text style={styles.subtitle}>{t('ai_dungeon_master', language)}</Text>
 
-      <Text style={styles.sectionTitle}>Language</Text>
+      <Text style={styles.sectionTitle}>{t('language', language)}</Text>
       <View style={styles.langGrid}>
         {languages.map((lang) => (
           <Pressable
@@ -70,12 +71,12 @@ export default function HomeScreen({ navigation }: Props) {
         style={styles.newGameButton}
         onPress={() => navigation.navigate('CharacterCreate')}
       >
-        <Text style={styles.buttonText}>New Adventure</Text>
+        <Text style={styles.buttonText}>{t('new_adventure', language)}</Text>
       </Pressable>
 
       {characters.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Continue</Text>
+          <Text style={styles.sectionTitle}>{t('continue', language)}</Text>
           <FlatList
             data={characters}
             keyExtractor={(item) => item.id}

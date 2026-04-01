@@ -5,18 +5,19 @@ import { RootStackParamList } from '../../App';
 import { rpc } from '../api/nakama';
 import { Class, Character } from '../types/game';
 import { useGameStore } from '../state/gameStore';
+import { t } from '../i18n/translations';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CharacterCreate'>;
 
-const classes: { id: Class; name: string; desc: string; color: string }[] = [
-  { id: 'warrior', name: 'Warrior', desc: 'STR 16 CON 14 — Heavy armor, melee combat', color: '#c0392b' },
-  { id: 'mage', name: 'Mage', desc: 'INT 16 WIS 14 — Powerful spells, light armor', color: '#2980b9' },
-  { id: 'rogue', name: 'Rogue', desc: 'DEX 16 INT 14 — Quick strikes, stealth', color: '#27ae60' },
-  { id: 'cleric', name: 'Cleric', desc: 'WIS 16 CON 14 — Healing, divine magic', color: '#f39c12' },
-  { id: 'ranger', name: 'Ranger', desc: 'DEX 16 WIS 14 — Ranged attacks, nature affinity', color: '#2ecc71' },
-  { id: 'paladin', name: 'Paladin', desc: 'STR 14 CHA 16 — Holy warrior, heals + fights', color: '#f1c40f' },
-  { id: 'necromancer', name: 'Necromancer', desc: 'INT 16 CON 14 — Dark magic, life drain', color: '#8e44ad' },
-  { id: 'berserker', name: 'Berserker', desc: 'STR 18 CON 14 — Raw damage, rage mode', color: '#e74c3c' },
+const classes: { id: Class; nameKey: string; descKey: string; color: string }[] = [
+  { id: 'warrior', nameKey: 'class_warrior', descKey: 'class_warrior_desc', color: '#c0392b' },
+  { id: 'mage', nameKey: 'class_mage', descKey: 'class_mage_desc', color: '#2980b9' },
+  { id: 'rogue', nameKey: 'class_rogue', descKey: 'class_rogue_desc', color: '#27ae60' },
+  { id: 'cleric', nameKey: 'class_cleric', descKey: 'class_cleric_desc', color: '#f39c12' },
+  { id: 'ranger', nameKey: 'class_ranger', descKey: 'class_ranger_desc', color: '#2ecc71' },
+  { id: 'paladin', nameKey: 'class_paladin', descKey: 'class_paladin_desc', color: '#f1c40f' },
+  { id: 'necromancer', nameKey: 'class_necromancer', descKey: 'class_necromancer_desc', color: '#8e44ad' },
+  { id: 'berserker', nameKey: 'class_berserker', descKey: 'class_berserker_desc', color: '#e74c3c' },
 ];
 
 export default function CharacterCreateScreen({ navigation }: Props) {
@@ -24,6 +25,7 @@ export default function CharacterCreateScreen({ navigation }: Props) {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [creating, setCreating] = useState(false);
   const setCharacter = useGameStore((s) => s.setCharacter);
+  const language = useGameStore((s) => s.language);
 
   async function handleCreate() {
     console.log('handleCreate called', { name, selectedClass, creating });
@@ -49,17 +51,17 @@ export default function CharacterCreateScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.label}>Character Name</Text>
+      <Text style={styles.label}>{t('character_name', language)}</Text>
       <TextInput
         style={styles.input}
         value={name}
         onChangeText={setName}
-        placeholder="Enter name..."
+        placeholder={t('enter_name', language)}
         placeholderTextColor="#666"
         maxLength={20}
       />
 
-      <Text style={styles.label}>Choose Class</Text>
+      <Text style={styles.label}>{t('choose_class', language)}</Text>
       {classes.map((cls) => (
         <Pressable
           key={cls.id}
@@ -69,8 +71,8 @@ export default function CharacterCreateScreen({ navigation }: Props) {
           ]}
           onPress={() => setSelectedClass(cls.id)}
         >
-          <Text style={[styles.className, { color: cls.color }]}>{cls.name}</Text>
-          <Text style={styles.classDesc}>{cls.desc}</Text>
+          <Text style={[styles.className, { color: cls.color }]}>{t(cls.nameKey, language)}</Text>
+          <Text style={styles.classDesc}>{t(cls.descKey, language)}</Text>
         </Pressable>
       ))}
 
@@ -80,7 +82,7 @@ export default function CharacterCreateScreen({ navigation }: Props) {
         disabled={!name.trim() || !selectedClass || creating}
       >
         <Text style={styles.createButtonText}>
-          {creating ? 'Creating...' : 'Begin Adventure'}
+          {creating ? t('creating', language) : t('begin_adventure', language)}
         </Text>
       </Pressable>
     </ScrollView>

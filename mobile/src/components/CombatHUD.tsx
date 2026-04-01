@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { getNameColor, getPKTitle } from '../types/game';
+import { t } from '../i18n/translations';
 
 export default function CombatHUD() {
   const character = useGameStore((s) => s.character);
   const combat = useGameStore((s) => s.combat);
   const phase = useGameStore((s) => s.phase);
+  const language = useGameStore((s) => s.language);
 
   if (phase !== 'in_combat' || !character) return null;
 
@@ -64,7 +66,7 @@ export default function CombatHUD() {
       )}
 
       {combat && (
-        <Text style={styles.roundText}>Round {combat.round}</Text>
+        <Text style={styles.roundText}>{t('round', language)} {combat.round}</Text>
       )}
     </View>
   );

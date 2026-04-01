@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { getNameColor, getPKTitle } from '../types/game';
+import { t } from '../i18n/translations';
 
 interface Props {
   visible: boolean;
@@ -10,6 +11,7 @@ interface Props {
 
 export default function CharacterSheet({ visible, onClose }: Props) {
   const character = useGameStore((s) => s.character);
+  const language = useGameStore((s) => s.language);
 
   if (!character) return null;
 
@@ -23,14 +25,14 @@ export default function CharacterSheet({ visible, onClose }: Props) {
               onPress={onClose}
               style={styles.closeButtonContainer}
               accessibilityRole="button"
-              accessibilityLabel="Close"
+              accessibilityLabel={t('close', language)}
             >
-              <Text style={styles.closeButton}>Close</Text>
+              <Text style={styles.closeButton}>{t('close', language)}</Text>
             </Pressable>
           </View>
 
           <Text style={styles.classLevel}>
-            Level {character.level} {character.class.charAt(0).toUpperCase() + character.class.slice(1)}
+            {t('level', language)} {character.level} {t(`class_${character.class}`, language)}
           </Text>
 
           <Text style={[styles.karmaText, { color: getNameColor(character.karma, character.flagged) }]}>
@@ -65,7 +67,7 @@ export default function CharacterSheet({ visible, onClose }: Props) {
           </View>
 
           <ScrollView style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>Stats</Text>
+            <Text style={styles.sectionTitle}>{t('stats', language)}</Text>
             <View style={styles.statsGrid}>
               {Object.entries(character.stats).map(([key, value]) => (
                 <View key={key} style={styles.statItem}>
@@ -78,17 +80,17 @@ export default function CharacterSheet({ visible, onClose }: Props) {
               ))}
             </View>
 
-            <Text style={styles.sectionTitle}>Equipment</Text>
+            <Text style={styles.sectionTitle}>{t('equipment', language)}</Text>
             <Text style={styles.equipItem}>
-              Weapon: {character.equipment.weapon?.name || 'None'}
+              {t('weapon', language)}: {character.equipment.weapon?.name || t('none', language)}
             </Text>
             <Text style={styles.equipItem}>
-              Armor: {character.equipment.armor?.name || 'None'}
+              {t('armor', language)}: {character.equipment.armor?.name || t('none', language)}
             </Text>
             <Text style={styles.equipItem}>AC: {character.ac}</Text>
 
             <Text style={styles.sectionTitle}>
-              Inventory ({character.inventory.length} items)
+              {t('inventory', language)} ({character.inventory.length} {t('items', language)})
             </Text>
             {character.inventory.map((item, i) => (
               <Text key={item.id || i} style={styles.invItem}>
@@ -96,7 +98,7 @@ export default function CharacterSheet({ visible, onClose }: Props) {
               </Text>
             ))}
 
-            <Text style={styles.gold}>Gold: {character.gold}</Text>
+            <Text style={styles.gold}>{t('gold', language)}: {character.gold}</Text>
           </ScrollView>
         </View>
       </View>

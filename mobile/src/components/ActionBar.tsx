@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { sendAction } from '../api/socket';
 import { NarrativeEntry } from '../types/game';
+import { t, translateLabel } from '../i18n/translations';
 
 let _actionCounter = 0;
 
@@ -36,18 +37,19 @@ const iconMap: Record<string, string> = {
 export default function ActionBar({ onCharacterSheet, onMap, onChat }: Props) {
   const quickActions = useGameStore((s) => s.quickActions);
   const isLoading = useGameStore((s) => s.isLoading);
+  const language = useGameStore((s) => s.language);
 
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
         <Pressable style={styles.statsButton} onPress={onCharacterSheet}>
-          <Text style={styles.statsText}>Stats</Text>
+          <Text style={styles.statsText}>{t('stats', language)}</Text>
         </Pressable>
         <Pressable style={styles.mapButton} onPress={onMap}>
-          <Text style={styles.statsText}>{'\u{1F5FA}\uFE0F'} Map</Text>
+          <Text style={styles.statsText}>{'\u{1F5FA}\uFE0F'} {t('map', language)}</Text>
         </Pressable>
         <Pressable style={styles.mapButton} onPress={onChat}>
-          <Text style={styles.statsText}>{'\u{1F4AC}'} Chat</Text>
+          <Text style={styles.statsText}>{'\u{1F4AC}'} {t('chat', language)}</Text>
         </Pressable>
       </View>
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.grid}>
@@ -73,7 +75,7 @@ export default function ActionBar({ onCharacterSheet, onMap, onChat }: Props) {
             disabled={isLoading}
           >
             <Text style={styles.actionIcon}>{iconMap[action.icon || ''] || '\u2728'}</Text>
-            <Text style={styles.actionLabel}>{action.label}</Text>
+            <Text style={styles.actionLabel}>{translateLabel(action.label, language)}</Text>
           </Pressable>
         ))}
       </ScrollView>

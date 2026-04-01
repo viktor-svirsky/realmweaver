@@ -5,6 +5,7 @@ import { sendAction } from '../api/socket';
 import { getNearbyPlayers, NearbyPlayer, travel } from '../api/social';
 import { getNameColor, getPKTitle, getTravelTime, getBiomeIcon, NarrativeEntry } from '../types/game';
 import PlayerInteraction from './PlayerInteraction';
+import { t } from '../i18n/translations';
 
 interface Props {
   onClose: () => void;
@@ -126,6 +127,7 @@ function hexToPixel(q: number, r: number): { x: number; y: number } {
 export default function MapView({ onClose }: Props) {
   const character = useGameStore((s) => s.character);
   const isLoading = useGameStore((s) => s.isLoading);
+  const language = useGameStore((s) => s.language);
   const [selectedHex, setSelectedHex] = useState<HexTile | null>(null);
   const [nearbyPlayers, setNearbyPlayers] = useState<NearbyPlayer[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<NearbyPlayer | null>(null);
@@ -236,11 +238,11 @@ export default function MapView({ onClose }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>{'\u{1F5FA}\uFE0F'} World Map</Text>
-          <Text style={styles.subtitle}>Current: Millhaven {'\u{1F333}'} Forest</Text>
+          <Text style={styles.title}>{'\u{1F5FA}\uFE0F'} {t('world_map', language)}</Text>
+          <Text style={styles.subtitle}>{t('current', language)}: Millhaven {'\u{1F333}'} Forest</Text>
         </View>
         <Pressable style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeText}>Close</Text>
+          <Text style={styles.closeText}>{t('close', language)}</Text>
         </Pressable>
       </View>
 
@@ -305,14 +307,14 @@ export default function MapView({ onClose }: Props) {
 
         <Text style={styles.hexHint}>
           {selectedHex?.isPlayer
-            ? 'Tap a location below to explore'
-            : 'Tap Millhaven to see locations'}
+            ? t('tap_location_below', language)
+            : t('tap_millhaven', language)}
         </Text>
 
         {/* Town Locations (shown when center hex selected) */}
         {selectedHex?.isPlayer && (
           <>
-            <Text style={styles.sectionTitle}>Millhaven Locations</Text>
+            <Text style={styles.sectionTitle}>{t('millhaven_locations', language)}</Text>
             <View style={styles.locationGrid}>
               {townLocations.map((loc) => (
                 <Pressable
@@ -328,13 +330,13 @@ export default function MapView({ onClose }: Props) {
                   <Text style={styles.locationIcon}>{loc.icon}</Text>
                   <Text style={styles.locationName}>{loc.name}</Text>
                   <Text style={[styles.locationDesc, loc.danger && styles.dangerText]}>
-                    {loc.desc}
+                    {loc.danger ? t('danger', language) : loc.desc}
                   </Text>
                 </Pressable>
               ))}
             </View>
 
-            <Text style={styles.sectionTitle}>People</Text>
+            <Text style={styles.sectionTitle}>{t('people', language)}</Text>
             <View style={styles.npcRow}>
               {npcs.map((npc) => (
                 <Pressable
@@ -345,7 +347,7 @@ export default function MapView({ onClose }: Props) {
                 >
                   <Text style={styles.npcIcon}>{npc.icon}</Text>
                   <Text style={styles.npcName}>{npc.name}</Text>
-                  <Text style={styles.npcRole}>{npc.role}</Text>
+                  <Text style={styles.npcRole}>{t(`role_${npc.role.toLowerCase()}`, language)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -355,8 +357,8 @@ export default function MapView({ onClose }: Props) {
         {/* Nearby Players */}
         {nearbyPlayers.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>{'\u{1F465}'} Nearby Players ({nearbyPlayers.length})</Text>
-            <Text style={styles.playerHint}>Tap a player to interact</Text>
+            <Text style={styles.sectionTitle}>{'\u{1F465}'} {t('nearby_players', language)} ({nearbyPlayers.length})</Text>
+            <Text style={styles.playerHint}>{t('tap_player_interact', language)}</Text>
             <View style={styles.npcRow}>
               {nearbyPlayers.map((player) => (
                 <Pressable key={player.user_id} style={styles.playerCard} onPress={() => setSelectedPlayer(player)}>
@@ -371,7 +373,7 @@ export default function MapView({ onClose }: Props) {
                   </Text>
                   <Text style={styles.playerInfo}>Lv{player.character_level} {player.character_class}</Text>
                   {player.region_x === (character?.region_x ?? 0) && player.region_y === (character?.region_y ?? 0) && (
-                    <Text style={styles.playerHere}>Here</Text>
+                    <Text style={styles.playerHere}>{t('here', language)}</Text>
                   )}
                 </Pressable>
               ))}
@@ -380,19 +382,19 @@ export default function MapView({ onClose }: Props) {
         )}
 
         {nearbyPlayers.length === 0 && (
-          <Text style={styles.noPlayersText}>No other players nearby</Text>
+          <Text style={styles.noPlayersText}>{t('no_players_nearby', language)}</Text>
         )}
 
         {/* Legend */}
         <View style={styles.legend}>
-          <Text style={styles.legendTitle}>Legend</Text>
+          <Text style={styles.legendTitle}>{t('legend', language)}</Text>
           <View style={styles.legendRow}>
             <View style={[styles.legendDot, { backgroundColor: '#2a4a2a' }]} />
-            <Text style={styles.legendText}>Explored</Text>
+            <Text style={styles.legendText}>{t('explored', language)}</Text>
             <View style={[styles.legendDot, { backgroundColor: '#1e2a3a' }]} />
-            <Text style={styles.legendText}>Hinted</Text>
+            <Text style={styles.legendText}>{t('hinted', language)}</Text>
             <View style={[styles.legendDot, { backgroundColor: '#111' }]} />
-            <Text style={styles.legendText}>Unknown</Text>
+            <Text style={styles.legendText}>{t('unknown', language)}</Text>
           </View>
         </View>
       </ScrollView>
@@ -401,19 +403,19 @@ export default function MapView({ onClose }: Props) {
       {travelConfirm && (
         <View style={styles.travelOverlay}>
           <View style={styles.travelDialog}>
-            <Text style={styles.travelTitle}>Travel to {travelConfirm.name || 'Unknown Region'}?</Text>
+            <Text style={styles.travelTitle}>{t('travel_to', language)} {travelConfirm.name || t('unknown', language)}?</Text>
             <Text style={styles.travelBiome}>
               {travelConfirm.icon || '?'} {travelConfirm.name || 'Unexplored'}
             </Text>
             <Text style={styles.travelTime}>
-              Estimated travel time: ~{getTravelTime(travelConfirm.biome || '')}s
+              {t('estimated_travel_time', language)}: ~{getTravelTime(travelConfirm.biome || '')}s
             </Text>
             <View style={styles.travelButtons}>
               <Pressable style={styles.travelCancel} onPress={() => setTravelConfirm(null)}>
-                <Text style={styles.travelCancelText}>Cancel</Text>
+                <Text style={styles.travelCancelText}>{t('cancel', language)}</Text>
               </Pressable>
               <Pressable style={styles.travelConfirmBtn} onPress={confirmTravel}>
-                <Text style={styles.travelConfirmText}>Travel</Text>
+                <Text style={styles.travelConfirmText}>{t('travel', language)}</Text>
               </Pressable>
             </View>
           </View>
@@ -425,7 +427,7 @@ export default function MapView({ onClose }: Props) {
         <View style={styles.travelOverlay}>
           <View style={styles.travelingBox}>
             <ActivityIndicator size="large" color="#e0d68a" />
-            <Text style={styles.travelingText}>Traveling...</Text>
+            <Text style={styles.travelingText}>{t('traveling', language)}</Text>
           </View>
         </View>
       )}

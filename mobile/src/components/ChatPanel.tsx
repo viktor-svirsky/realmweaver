@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { getChat, postChat, ChatMessage } from '../api/social';
+import { t } from '../i18n/translations';
 
 interface Props {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface Props {
 
 export default function ChatPanel({ onClose }: Props) {
   const character = useGameStore((s) => s.character);
+  const language = useGameStore((s) => s.language);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -50,9 +52,9 @@ export default function ChatPanel({ onClose }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{'\u{1F4AC}'} Region Chat</Text>
+        <Text style={styles.title}>{'\u{1F4AC}'} {t('region_chat', language)}</Text>
         <Pressable style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeText}>Close</Text>
+          <Text style={styles.closeText}>{t('close', language)}</Text>
         </Pressable>
       </View>
 
@@ -69,7 +71,7 @@ export default function ChatPanel({ onClose }: Props) {
         contentContainerStyle={styles.msgList}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No messages yet. Say something!</Text>
+          <Text style={styles.emptyText}>{t('no_messages', language)}</Text>
         }
       />
 
@@ -78,7 +80,7 @@ export default function ChatPanel({ onClose }: Props) {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Say something..."
+          placeholder={t('say_something', language)}
           placeholderTextColor="#555"
           maxLength={500}
           onSubmitEditing={handleSend}
@@ -89,7 +91,7 @@ export default function ChatPanel({ onClose }: Props) {
           onPress={handleSend}
           disabled={!text.trim() || sending}
         >
-          <Text style={styles.sendText}>Send</Text>
+          <Text style={styles.sendText}>{t('send', language)}</Text>
         </Pressable>
       </View>
     </View>
