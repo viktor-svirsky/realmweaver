@@ -182,12 +182,20 @@ export default function MapView({ onClose }: Props) {
       const destX = char.region_x + travelConfirm.q;
       const destY = char.region_y + travelConfirm.r;
 
+      // Show player action
+      store.addNarrativeEntry({
+        id: `action_travel_${Date.now()}`,
+        type: 'system' as const,
+        text: `> Travel to ${travelConfirm.name || 'Unknown Region'}`,
+        timestamp: Date.now(),
+      });
+
       const result = await travel(char.id, destX, destY);
 
-      // Show travel narration
+      // Show travel status
       store.addNarrativeEntry({
         id: `travel_${Date.now()}`,
-        type: 'narrative' as const,
+        type: 'system' as const,
         text: result.narrative,
         timestamp: Date.now(),
       });

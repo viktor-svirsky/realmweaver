@@ -68,6 +68,10 @@ export default function NarrativeView() {
             <Text style={styles.mechanicalIcon}>{'\u{2694}\uFE0F'}</Text>
             <Text style={styles.mechanical}>{item.text}</Text>
           </View>
+        ) : item.text.startsWith('>') ? (
+          <View style={styles.playerActionBox}>
+            <Text style={styles.playerAction}>{item.text.substring(2)}</Text>
+          </View>
         ) : (
           <View style={styles.systemBox}>
             <Text style={styles.system}>{item.text}</Text>
@@ -138,6 +142,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     flex: 1,
+  },
+  playerActionBox: {
+    backgroundColor: 'rgba(46, 204, 113, 0.08)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2ecc71',
+    alignSelf: 'flex-end',
+    maxWidth: '80%',
+    marginVertical: 4,
+  },
+  playerAction: {
+    color: '#2ecc71',
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontStyle: 'italic',
   },
   systemBox: {
     backgroundColor: 'rgba(93, 173, 226, 0.1)',

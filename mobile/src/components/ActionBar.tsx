@@ -2,6 +2,9 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useGameStore } from '../state/gameStore';
 import { sendAction } from '../api/socket';
+import { NarrativeEntry } from '../types/game';
+
+let _actionCounter = 0;
 
 interface Props {
   onCharacterSheet: () => void;
@@ -54,9 +57,16 @@ export default function ActionBar({ onCharacterSheet, onMap, onChat }: Props) {
             style={[styles.actionButton, isLoading && styles.disabled]}
             onPress={() => {
               if (!isLoading) {
-                useGameStore.getState().setLoading(true);
+                const store = useGameStore.getState();
+                store.setLoading(true);
+                // Show player action in narrative
+                store.addNarrativeEntry({
+                  id: `action_${Date.now()}_${++_actionCounter}`,
+                  type: 'system' as const,
+                  text: `> ${action.label}`,
+                  timestamp: Date.now(),
+                });
                 sendAction(action.id, { target: action.id.replace('talk_', '') });
-                // Reset loading after timeout (server response will also reset it)
                 setTimeout(() => useGameStore.getState().setLoading(false), 15000);
               }
             }}
