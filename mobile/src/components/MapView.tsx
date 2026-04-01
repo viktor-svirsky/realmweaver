@@ -192,13 +192,8 @@ export default function MapView({ onClose }: Props) {
 
       const result = await travel(char.id, destX, destY);
 
-      // Show travel status
-      store.addNarrativeEntry({
-        id: `travel_${Date.now()}`,
-        type: 'system' as const,
-        text: result.narrative,
-        timestamp: Date.now(),
-      });
+      // Don't show RPC narrative (English template) — the match handler
+      // will generate a proper narration via Claude in the player's language
 
       // Update character position in store
       store.setCharacter({
