@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+mobile/node_modules/
+
+# Build
+*.so
+nakama/vendor/
+
+# Environment
+.env
+.env.*
+
+# Docker volumes
+cockroach-data/
+postgres-data/
+nakama-data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Icon?
+Thumbs.db
+
+# Expo
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+
+# Playwright
+.playwright-mcp/
+
+# Misc
+*.log

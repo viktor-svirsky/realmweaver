@@ -1,0 +1,66 @@
+services:
+  cockroachdb:
+    image: cockroachdb/cockroach:latest-v23.1
+    command: start-single-node --insecure --store=attrs=ssd,path=/var/lib/cockroach/
+    volumes:
+      - cockroach-data:/var/lib/cockroach
+    ports:
+      - '26257:26257'
+      - '8080:8080'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health?ready=1']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: realmweaver_world
+      POSTGRES_USER: realmweaver
+      POSTGRES_PASSWORD: realmweaver_dev
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - '5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U realmweaver -d realmweaver_world']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  nakama:
+    build:
+      context: ./nakama
+      dockerfile: Dockerfile
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      CLAUDE_API_URL: https://ai-proxy.9635783.xyz/v1/messages
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:?Set CLAUDE_API_KEY environment variable}
+      CLAUDE_MODEL: claude-sonnet-4-6
+      WORLD_DB_DSN: postgres://realmweaver:realmweaver_dev@postgres:5432/realmweaver_world?sslmode=disable
+    entrypoint:
+      - /bin/sh
+      - -ecx
+      - >
+        /nakama/nakama migrate up --database.address root@cockroachdb:26257 &&
+        exec /nakama/nakama
+        --name realmweaver
+        --database.address root@cockroachdb:26257
+        --logger.level DEBUG
+        --session.token_expiry_sec 7200
+        --runtime.path /nakama/data/modules
+    ports:
+      - '7349:7349'
+      - '7350:7350'
+      - '7351:7351'
+    restart: unless-stopped
+
+volumes:
+  cockroach-data:
+  postgres-data:
