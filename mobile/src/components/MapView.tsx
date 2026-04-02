@@ -47,41 +47,20 @@ const npcs = [
   { name: 'Pip', action: 'talk_pip', icon: '\u{1F9D2}', role: 'Merchant' },
 ];
 
-// Generate hex grid with axial coordinates (q, r) for 4 rings (61 hexes)
-function generateHexGrid(): HexTile[] {
+// Biome icon lookup
+const biomeIcons: Record<string, string> = {
+  forest: '\u{1F332}', plains: '\u{1F33E}', farmlands: '\u{1F33E}',
+  hills: '\u{26F0}\uFE0F', foothills: '\u{26F0}\uFE0F',
+  mountains: '\u{1F3D4}\uFE0F', desert: '\u{1F3DC}\uFE0F}',
+  swamp: '\u{1F409}', marsh: '\u{1F409}', coast: '\u{1F30A}',
+  snow: '\u{2744}\uFE0F', ice: '\u{2744}\uFE0F',
+  wastes: '\u{1F525}', volcano: '\u{1F30B}',
+};
+
+// Generate hex grid centered on player position with known regions from visited data
+function generateHexGrid(playerX: number, playerY: number, regionName?: string, regionBiome?: string): HexTile[] {
   const tiles: HexTile[] = [];
   const radius = 4;
-
-  // Biome hints for rings 1-3 (ring 4 is pure fog)
-  const biomeHints: Record<string, { icon: string; biome: string }> = {
-    // Ring 1
-    '0,-1':  { icon: '\u{1F332}', biome: 'Deep Forest' },
-    '1,-1':  { icon: '\u{26F0}\uFE0F', biome: 'Foothills' },
-    '1,0':   { icon: '\u{1F333}', biome: 'Forest Edge' },
-    '0,1':   { icon: '\u{1F33E}', biome: 'Farmlands' },
-    '-1,1':  { icon: '\u{1F30A}', biome: 'River Valley' },
-    '-1,0':  { icon: '\u{1F32B}\uFE0F', biome: 'Misty Woods' },
-    // Ring 2
-    '0,-2':  { icon: '\u{1F3D4}\uFE0F', biome: 'Mountain Pass' },
-    '1,-2':  { icon: '\u{1F30B}', biome: 'Volcanic Ridge' },
-    '2,-2':  { icon: '\u{1F3DC}\uFE0F', biome: 'Dry Plateau' },
-    '2,-1':  { icon: '\u{1F344}', biome: 'Mushroom Grotto' },
-    '2,0':   { icon: '\u{1F335}', biome: 'Cactus Wastes' },
-    '1,1':   { icon: '\u{1F33B}', biome: 'Sunflower Plains' },
-    '0,2':   { icon: '\u{1F3F0}', biome: 'Ruined Keep' },
-    '-1,2':  { icon: '\u{1F409}', biome: 'Dragon Marsh' },
-    '-2,2':  { icon: '\u{1F4A0}', biome: 'Crystal Lake' },
-    '-2,1':  { icon: '\u{1F578}\uFE0F', biome: 'Spider Woods' },
-    '-2,0':  { icon: '\u{2744}\uFE0F', biome: 'Frozen Glade' },
-    '-1,-1': { icon: '\u{1F343}', biome: 'Whispering Pines' },
-    // Ring 3
-    '0,-3':  { icon: '\u{2601}\uFE0F', biome: 'Cloud Peaks' },
-    '3,-3':  { icon: '\u{1F525}', biome: 'Ember Wastes' },
-    '3,0':   { icon: '\u{1F3DD}\uFE0F', biome: 'Lost Oasis' },
-    '0,3':   { icon: '\u{1F47B}', biome: 'Haunted Ruins' },
-    '-3,3':  { icon: '\u{1F30A}', biome: 'Stormy Shore' },
-    '-3,0':  { icon: '\u{2744}\uFE0F', biome: 'Ice Caverns' },
-  };
 
   for (let q = -radius; q <= radius; q++) {
     for (let r = -radius; r <= radius; r++) {
@@ -91,19 +70,25 @@ function generateHexGrid(): HexTile[] {
       const isCenter = q === 0 && r === 0;
       const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(s));
 
+      // World coordinates for this tile
+      const worldX = playerX + q;
+      const worldY = playerY + r;
+
       const tile: HexTile = { q, r, known: isCenter, isPlayer: isCenter };
 
       if (isCenter) {
+        // Current player position
+        tile.name = regionName || `Region (${worldX},${worldY})`;
+        tile.biome = regionBiome || 'unknown';
+        tile.icon = worldX === 0 && worldY === 0 ? '\u{1F3E1}' : (biomeIcons[regionBiome || ''] || '\u{1F4CD}');
+        tile.difficulty = Math.max(Math.abs(worldX), Math.abs(worldY), Math.abs(-worldX - worldY));
+      }
+      // Millhaven marker if it's in view
+      else if (worldX === 0 && worldY === 0) {
         tile.name = 'Millhaven';
         tile.biome = 'forest';
         tile.icon = '\u{1F3E1}';
-        tile.difficulty = 1;
-      } else {
-        const key = `${q},${r}`;
-        if (biomeHints[key]) {
-          tile.icon = biomeHints[key].icon;
-          tile.name = biomeHints[key].biome;
-        }
+        tile.known = true;
       }
 
       tiles.push(tile);
@@ -144,7 +129,13 @@ export default function MapView({ onClose }: Props) {
 
   if (!character) return null;
 
-  const hexTiles = generateHexGrid();
+  // TODO: region name/biome should come from the match state.
+  // For now we get it from the last narrative or use coordinates.
+  const playerX = character.region_x;
+  const playerY = character.region_y;
+  const currentRegionName = playerX === 0 && playerY === 0 ? 'Millhaven' : undefined;
+  const currentRegionBiome = playerX === 0 && playerY === 0 ? 'forest' : undefined;
+  const hexTiles = generateHexGrid(playerX, playerY, currentRegionName, currentRegionBiome);
 
   function handleLocationPress(loc: TownLocation) {
     if (isLoading) return;
@@ -239,7 +230,7 @@ export default function MapView({ onClose }: Props) {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{'\u{1F5FA}\uFE0F'} {t('world_map', language)}</Text>
-          <Text style={styles.subtitle}>{t('current', language)}: Millhaven {'\u{1F333}'} Forest</Text>
+          <Text style={styles.subtitle}>{t('current', language)}: ({playerX}, {playerY})</Text>
         </View>
         <Pressable style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeText}>{t('close', language)}</Text>
@@ -308,7 +299,7 @@ export default function MapView({ onClose }: Props) {
         <Text style={styles.hexHint}>
           {selectedHex?.isPlayer
             ? t('tap_location_below', language)
-            : t('tap_millhaven', language)}
+            : t('tap_center_hex', language)}
         </Text>
 
         {/* Town Locations (shown when center hex selected) */}
