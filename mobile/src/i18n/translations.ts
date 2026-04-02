@@ -200,6 +200,7 @@ export function translateLabel(label: string, lang: string): string {
       'Ask about the cave': '\u0417\u0430\u043F\u0438\u0442\u0430\u0442\u0438 \u043F\u0440\u043E \u043F\u0435\u0447\u0435\u0440\u0443',
       'Trade': '\u0422\u043E\u0440\u0433\u0443\u0432\u0430\u0442\u0438',
       'Leave conversation': '\u0417\u0430\u043A\u0456\u043D\u0447\u0438\u0442\u0438 \u0440\u043E\u0437\u043C\u043E\u0432\u0443',
+      'Hunt Enemies': '\u041F\u043E\u043B\u044E\u0432\u0430\u043D\u043D\u044F',
     },
   };
 

@@ -56,9 +56,12 @@ func RPCPvPChallenge(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		return "", runtime.NewError("defender character not found", 5)
 	}
 
-	// Must be in same region
-	if attacker.RegionX != defender.RegionX || attacker.RegionY != defender.RegionY {
-		return "", runtime.NewError("players must be in the same region", 3)
+	// Must be in same or adjacent region
+	dx := attacker.RegionX - defender.RegionX
+	dy := attacker.RegionY - defender.RegionY
+	ds := (-dx - dy) - (-attacker.RegionX - attacker.RegionY + defender.RegionX + defender.RegionY)
+	if max(abs(dx), abs(dy), abs(ds)) > 1 {
+		return "", runtime.NewError("player is too far away", 3)
 	}
 
 	// PvP cooldown: can't challenge the same player within 5 minutes
@@ -294,9 +297,12 @@ func RPCCoopHelp(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		return "", runtime.NewError("target character not found", 5)
 	}
 
-	// Must be in same region
-	if helper.RegionX != target.RegionX || helper.RegionY != target.RegionY {
-		return "", runtime.NewError("players must be in the same region", 3)
+	// Must be in same or adjacent region
+	hdx := helper.RegionX - target.RegionX
+	hdy := helper.RegionY - target.RegionY
+	hds := -hdx - hdy
+	if max(abs(hdx), abs(hdy), abs(hds)) > 1 {
+		return "", runtime.NewError("player is too far away", 3)
 	}
 
 	var result string
@@ -363,4 +369,16 @@ func RPCCoopHelp(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 
 	data, _ := json.Marshal(map[string]string{"result": result})
 	return string(data), nil
+}
+
+func abs(x int) int {
+	if x < 0 { return -x }
+	return x
+}
+
+func max(a, b, c int) int {
+	m := a
+	if b > m { m = b }
+	if c > m { m = c }
+	return m
 }

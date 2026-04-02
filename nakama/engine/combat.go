@@ -289,3 +289,65 @@ func GoblinCaveEnemies(room int) []Enemy {
 		}
 	}
 }
+
+// RandomEncounter generates enemies based on region difficulty and player level.
+func RandomEncounter(difficulty, playerLevel int) []Enemy {
+	// Scale enemies with difficulty and player level
+	tier := difficulty + playerLevel/3
+	if tier < 1 { tier = 1 }
+
+	type template struct {
+		Name string
+		BaseHP int
+		BaseAC int
+		BaseSTR int
+		BaseDEX int
+		BaseXP int
+	}
+
+	pool := []template{
+		{"Wolf", 8, 11, 10, 14, 20},
+		{"Bandit", 10, 12, 12, 12, 30},
+		{"Skeleton", 8, 10, 10, 8, 25},
+		{"Spider", 6, 13, 8, 16, 20},
+		{"Orc", 14, 13, 14, 10, 40},
+		{"Troll", 20, 12, 16, 8, 60},
+		{"Dark Mage", 10, 11, 8, 12, 45},
+		{"Wraith", 12, 14, 12, 14, 50},
+		{"Dire Bear", 18, 12, 16, 10, 55},
+		{"Harpy", 10, 13, 10, 16, 35},
+	}
+
+	// Pick 1-3 enemies based on difficulty
+	numEnemies := 1 + Roll(min(difficulty, 3))
+	if numEnemies > 3 { numEnemies = 3 }
+
+	var enemies []Enemy
+	for i := 0; i < numEnemies; i++ {
+		t := pool[Roll(len(pool))-1]
+		scale := 1.0 + float64(tier-1)*0.3
+		hp := int(float64(t.BaseHP) * scale)
+		ac := t.BaseAC + tier/2
+		str := t.BaseSTR + tier
+		dex := t.BaseDEX + tier/2
+		xp := int(float64(t.BaseXP) * scale)
+
+		enemies = append(enemies, Enemy{
+			ID:    fmt.Sprintf("mob_%s_%d_%d", t.Name, i, Roll(9999)),
+			Name:  t.Name,
+			HP:    hp,
+			MaxHP: hp,
+			AC:    ac,
+			STR:   str,
+			DEX:   dex,
+			Damage: fmt.Sprintf("1d%d+%d", 4+tier, tier),
+			XP:    xp,
+		})
+	}
+	return enemies
+}
+
+func min(a, b int) int {
+	if a < b { return a }
+	return b
+}

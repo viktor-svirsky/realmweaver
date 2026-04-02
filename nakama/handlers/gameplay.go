@@ -453,6 +453,23 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 			Success: true,
 			Details: fmt.Sprintf("Entering the Goblin Cave. %s", gameText("combat_start", ms.Language)),
 		}, "entering the Goblin Cave and encountering enemies")
+	case "hunt":
+		// Spawn random enemies based on region difficulty
+		difficulty := 1
+		biomeName := "wilderness"
+		if ms.Region != nil {
+			difficulty = ms.Region.Difficulty
+			biomeName = ms.Region.Biome
+		}
+		enemies := engine.RandomEncounter(difficulty, ms.Character.Level)
+		ms.Combat = engine.InitCombat(ms.Character, enemies)
+		ms.Phase = engine.PhaseInCombat
+		narrateAction(ctx, logger, dispatcher, sender, ms, &engine.ActionResult{
+			Action:  "combat_start",
+			Actor:   ms.Character.Name,
+			Success: true,
+			Details: gameText("combat_start", ms.Language),
+		}, fmt.Sprintf("searching for enemies in the %s and encountering hostile creatures", biomeName))
 	case "travel_complete":
 		// Reload character from storage to get updated position
 		if ms.UserID != "" {
@@ -727,6 +744,7 @@ func sendQuickActions(dispatcher runtime.MatchDispatcher, presence runtime.Prese
 			npcID := "talk_" + strings.ToLower(strings.ReplaceAll(npc.Name, " ", "_"))
 			actions = append(actions, engine.QuickAction{ID: npcID, Label: "Talk to " + npc.Name, Icon: "npc"})
 		}
+		actions = append(actions, engine.QuickAction{ID: "hunt", Label: "Hunt Enemies", Icon: "sword"})
 		actions = append(actions, engine.QuickAction{ID: "rest", Label: "Rest", Icon: "campfire"})
 		data, _ := json.Marshal(actions)
 		dispatcher.BroadcastMessage(OpCodeQuickActions, data, []runtime.Presence{presence}, nil, true)
