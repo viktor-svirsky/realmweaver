@@ -122,6 +122,19 @@ func RPCPostChat(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 		return "", runtime.NewError("failed to post message", 13)
 	}
 
+	// Notify all players in the region about the new chat message
+	players, _ := wdb.GetPlayersInRegion(ctx, req.RegionX, req.RegionY, userID)
+	for _, p := range players {
+		content := map[string]interface{}{
+			"type":     "chat",
+			"sender":   req.CharacterName,
+			"message":  req.Message,
+			"region_x": req.RegionX,
+			"region_y": req.RegionY,
+		}
+		nk.NotificationSend(ctx, p.UserID, "chat_message", content, 1, "", false)
+	}
+
 	return `{"status":"sent"}`, nil
 }
 

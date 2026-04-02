@@ -197,6 +197,14 @@ func RPCAcceptTrade(ctx context.Context, logger runtime.Logger, db *sql.DB, nk r
 	storage.SaveCharacter(ctx, nk, sellerID, sellerChar)
 	storage.SaveCharacter(ctx, nk, buyerID, buyerChar)
 
+	// Notify seller that their trade was accepted
+	tradeContent := map[string]interface{}{
+		"type":     "trade_accepted",
+		"buyer":    buyerChar.Name,
+		"trade_id": req.TradeID,
+	}
+	nk.NotificationSend(ctx, sellerID, "trade_accepted", tradeContent, 4, "", false)
+
 	data, _ := json.Marshal(map[string]string{"status": "trade_complete"})
 	return string(data), nil
 }

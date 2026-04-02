@@ -30,9 +30,19 @@ export default function ChatPanel({ onClose }: Props) {
       }
     }
     load();
-    const interval = setInterval(load, 5000);
+    // Reduced from 5s to 15s — real-time notifications handle new messages
+    const interval = setInterval(load, 15000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [regionX, regionY]);
+
+  async function loadMessages() {
+    try {
+      const msgs = await getChat(regionX, regionY);
+      setMessages(msgs);
+    } catch {
+      // ignore
+    }
+  }
 
   async function handleSend() {
     if (!text.trim() || !character || sending) return;
@@ -53,9 +63,14 @@ export default function ChatPanel({ onClose }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{'\u{1F4AC}'} {t('region_chat', language)}</Text>
-        <Pressable style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeText}>{t('close', language)}</Text>
-        </Pressable>
+        <View style={styles.headerButtons}>
+          <Pressable style={styles.refreshBtn} onPress={loadMessages}>
+            <Text style={styles.refreshText}>{'\u{1F504}'}</Text>
+          </Pressable>
+          <Pressable style={styles.closeBtn} onPress={onClose}>
+            <Text style={styles.closeText}>{t('close', language)}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
@@ -124,6 +139,20 @@ const styles = StyleSheet.create({
     color: '#e0d68a',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  refreshBtn: {
+    backgroundColor: '#2c3e50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  refreshText: {
+    fontSize: 14,
   },
   closeBtn: {
     backgroundColor: '#2c3e50',

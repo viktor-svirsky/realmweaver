@@ -245,6 +245,15 @@ func RPCPvPChallenge(ctx context.Context, logger runtime.Logger, db *sql.DB, nk 
 		},
 	})
 
+	// Notify defender about PvP result
+	pvpContent := map[string]interface{}{
+		"type":        "pvp_result",
+		"attacker":    attacker.Name,
+		"winner":      winner,
+		"gold_reward": reward,
+	}
+	nk.NotificationSend(ctx, req.DefenderUserID, "pvp_result", pvpContent, 2, "", false)
+
 	data, _ := json.Marshal(map[string]interface{}{
 		"rounds":          rounds,
 		"winner":          winner,
@@ -343,6 +352,14 @@ func RPCCoopHelp(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runt
 
 	storage.SaveCharacter(ctx, nk, helperID, helper)
 	storage.SaveCharacter(ctx, nk, req.TargetUserID, target)
+
+	// Notify target about co-op help
+	coopContent := map[string]interface{}{
+		"type":   "coop_help",
+		"helper": helper.Name,
+		"result": result,
+	}
+	nk.NotificationSend(ctx, req.TargetUserID, "coop_help", coopContent, 3, "", false)
 
 	data, _ := json.Marshal(map[string]string{"result": result})
 	return string(data), nil

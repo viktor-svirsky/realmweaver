@@ -36,6 +36,50 @@ export async function connectSocket(): Promise<Socket> {
     console.log('Socket disconnected');
   };
 
+  socket.onnotification = (notification) => {
+    const store = useGameStore.getState();
+    const content = (notification.content || {}) as Record<string, string>;
+
+    switch (content.type) {
+      case 'chat': {
+        store.addNarrativeEntry({
+          id: nextId('chat'),
+          type: 'system',
+          text: `\u{1F4AC} ${content.sender}: ${content.message}`,
+          timestamp: Date.now(),
+        });
+        break;
+      }
+      case 'pvp_result': {
+        store.addNarrativeEntry({
+          id: nextId('pvp'),
+          type: 'system',
+          text: `\u{2694}\u{FE0F} ${content.attacker} challenged you! Winner: ${content.winner} (+${content.gold_reward} gold)`,
+          timestamp: Date.now(),
+        });
+        break;
+      }
+      case 'coop_help': {
+        store.addNarrativeEntry({
+          id: nextId('coop'),
+          type: 'system',
+          text: `\u{1F91D} ${content.result}`,
+          timestamp: Date.now(),
+        });
+        break;
+      }
+      case 'trade_accepted': {
+        store.addNarrativeEntry({
+          id: nextId('trade'),
+          type: 'system',
+          text: `\u{1F91D} ${content.buyer} accepted your trade!`,
+          timestamp: Date.now(),
+        });
+        break;
+      }
+    }
+  };
+
   return socket;
 }
 
