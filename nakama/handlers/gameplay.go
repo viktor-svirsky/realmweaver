@@ -491,6 +491,7 @@ func handleDialogueAction(ctx context.Context, logger runtime.Logger, dispatcher
 	switch action.Action {
 	case "leave":
 		ms.Phase = engine.PhaseExploring
+		sendNarrative(dispatcher, sender, "")
 	case "ask_quest":
 		narrateDialogue(ctx, logger, dispatcher, sender, ms, action.Target, "ask about available quests or work")
 	case "ask_rumors":
@@ -514,6 +515,7 @@ func handleDialogueAction(ctx context.Context, logger runtime.Logger, dispatcher
 func handleShopAction(ctx context.Context, logger runtime.Logger, dispatcher runtime.MatchDispatcher, sender runtime.MatchData, ms *MatchState, action *PlayerActionMsg) {
 	if action.Action == "leave" {
 		ms.Phase = engine.PhaseExploring
+		sendNarrative(dispatcher, sender, "")
 		return
 	}
 	narrateDialogue(ctx, logger, dispatcher, sender, ms, action.Target, action.Action)

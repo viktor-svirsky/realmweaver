@@ -97,17 +97,22 @@ function handleMatchData(matchData: MatchData): void {
       if (state.character) store.setCharacter(state.character);
       store.setPhase(state.phase);
       if (state.combat) store.setCombat(state.combat);
+      // Reset loading when game state arrives (safety net for actions that don't narrate)
+      store.setLoading(false);
       break;
     }
 
     case OpCode.NARRATIVE: {
-      const entry: NarrativeEntry = {
-        id: nextId('narr'),
-        type: 'narrative',
-        text: (data as { text: string }).text,
-        timestamp: Date.now(),
-      };
-      store.addNarrativeEntry(entry);
+      const text = (data as { text: string }).text;
+      // Skip empty narratives (e.g. from "leave" action)
+      if (text && text.trim()) {
+        store.addNarrativeEntry({
+          id: nextId('narr'),
+          type: 'narrative',
+          text,
+          timestamp: Date.now(),
+        });
+      }
       store.setStreaming(false);
       store.setLoading(false);
       break;
