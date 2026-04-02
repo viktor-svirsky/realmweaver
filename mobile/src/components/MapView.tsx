@@ -57,6 +57,24 @@ const biomeIcons: Record<string, string> = {
   wastes: '\u{1F525}', volcano: '\u{1F30B}',
 };
 
+// Guess biome based on direction from player for visual variety on unknown hexes
+function guessBiome(q: number, r: number): { icon: string; name: string } | null {
+  if (q === 0 && r === 0) return null; // center = player
+  const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
+  if (ring > 3) return null; // too far = pure fog
+
+  // Direction-based biome hints
+  const angle = Math.atan2(r + q * 0.5, q * Math.sqrt(3) / 2);
+  const deg = ((angle * 180 / Math.PI) + 360) % 360;
+
+  if (deg < 60) return { icon: '\u{26F0}\uFE0F', name: 'Hills' };
+  if (deg < 120) return { icon: '\u{1F3DC}\uFE0F', name: 'Desert' };
+  if (deg < 180) return { icon: '\u{1F33E}', name: 'Plains' };
+  if (deg < 240) return { icon: '\u{1F30A}', name: 'Coast' };
+  if (deg < 300) return { icon: '\u{2744}\uFE0F', name: 'Tundra' };
+  return { icon: '\u{1F332}', name: 'Forest' };
+}
+
 // Generate hex grid centered on player position with known regions from visited data
 function generateHexGrid(playerX: number, playerY: number, regionName?: string, regionBiome?: string): HexTile[] {
   const tiles: HexTile[] = [];
@@ -89,6 +107,14 @@ function generateHexGrid(playerX: number, playerY: number, regionName?: string, 
         tile.biome = 'forest';
         tile.icon = '\u{1F3E1}';
         tile.known = true;
+      }
+      // Biome hints for nearby unknown hexes
+      else if (!tile.known) {
+        const biomeGuess = guessBiome(q, r);
+        if (biomeGuess) {
+          tile.icon = biomeGuess.icon;
+          tile.name = biomeGuess.name;
+        }
       }
 
       tiles.push(tile);

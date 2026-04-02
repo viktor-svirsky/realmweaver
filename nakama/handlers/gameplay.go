@@ -16,6 +16,28 @@ import (
 	"realmweaver/world"
 )
 
+// gameText returns a localized string for the given key and language.
+func gameText(key string, lang string) string {
+	texts := map[string]map[string]string{
+		"victory":      {"en": "Victory!", "uk": "Перемога!"},
+		"xp_gained":    {"en": "+%d XP", "uk": "+%d досвіду"},
+		"level_up":     {"en": " LEVEL UP!", "uk": " РІВЕНЬ ПІДВИЩЕНО!"},
+		"loot_found":   {"en": "Loot found:", "uk": "Здобич:"},
+		"gold":         {"en": "gold", "uk": "золота"},
+		"no_loot":      {"en": "No loot found.", "uk": "Здобичі не знайдено."},
+		"fully_rested": {"en": "Fully rested. HP and Mana restored.", "uk": "Повний відпочинок. HP та Мана відновлені."},
+		"combat_start": {"en": "Combat begins!", "uk": "Бій починається!"},
+		"player_death":  {"en": "You have fallen in battle.", "uk": "Ви загинули в бою."},
+	}
+	if t, ok := texts[key]; ok {
+		if v, ok := t[lang]; ok {
+			return v
+		}
+		return t["en"]
+	}
+	return key
+}
+
 // OpCode defines message types between client and server.
 const (
 	OpCodePlayerAction int64 = 1
@@ -364,7 +386,7 @@ func handleCombatAction(ctx context.Context, logger runtime.Logger, nk runtime.N
 			XPGained:    xp,
 			LeveledUp:   leveledUp,
 			LootDropped: lootItems,
-			Details:     fmt.Sprintf("Victory! +%d XP%s\n%s", xp, func() string { if leveledUp { return " LEVEL UP!" }; return "" }(), lootText),
+			Details:     fmt.Sprintf("%s "+gameText("xp_gained", ms.Language)+"%s\n%s", gameText("victory", ms.Language), xp, func() string { if leveledUp { return gameText("level_up", ms.Language) }; return "" }(), lootText),
 		}
 		sendMechanical(dispatcher, sender, &victoryResult)
 		narrateAction(ctx, logger, dispatcher, sender, ms, &victoryResult, "victory after defeating all enemies")
@@ -389,7 +411,7 @@ func handleCombatAction(ctx context.Context, logger runtime.Logger, nk runtime.N
 					Actor:       ms.Character.Name,
 					Success:     false,
 					CombatEnded: true,
-					Details:     "You have fallen in battle.",
+					Details:     gameText("player_death", ms.Language),
 				}
 				sendMechanical(dispatcher, sender, &deathResult)
 				narrateAction(ctx, logger, dispatcher, sender, ms, &deathResult, "player death")
@@ -416,7 +438,7 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 			Action:  "rest",
 			Actor:   ms.Character.Name,
 			Success: true,
-			Details: "Fully rested. HP and Mana restored.",
+			Details: gameText("fully_rested", ms.Language),
 		}
 		sendMechanical(dispatcher, sender, &result)
 		narrateExploration(ctx, logger, dispatcher, sender, ms, "rest at the current location")
@@ -429,7 +451,7 @@ func handleExploreAction(ctx context.Context, logger runtime.Logger, nk runtime.
 			Action:  "combat_start",
 			Actor:   ms.Character.Name,
 			Success: true,
-			Details: "Entering the Goblin Cave. Combat begins!",
+			Details: fmt.Sprintf("Entering the Goblin Cave. %s", gameText("combat_start", ms.Language)),
 		}, "entering the Goblin Cave and encountering enemies")
 	case "travel_complete":
 		// Reload character from storage to get updated position
